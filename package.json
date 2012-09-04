@@ -8,7 +8,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "http://github.com/luminger/scoop.git"
+        "url": "http://github.com/luminger/node-scoop.git"
     },
     "main": "lib/scoop.js"
 }
