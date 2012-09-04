@@ -1,0 +1,73 @@
+"use strict"
+
+module.exports = (function() {
+    var handler = function(key) {
+        if(!this.pending.hasOwnProperty(key))
+        {
+            this.pending[key] = {
+                "pending": 0,
+                "result": []
+            }
+        }
+        var id = this.pending[key].pending++;
+        this.globalpending++;
+
+        return (function callback(err, result) {
+            if(err) throw err;
+
+            this.globalpending--;
+            this.pending[key].pending--;
+            this.pending[key].result[id] = result;
+
+            if(this.pending[key].pending == 0) {
+                this.data[key] = this.pending[key].result;
+                delete this.pending[key];
+            }
+
+            if(this.globalpending == 0) {
+                this.executor();
+            }
+        }).bind(this);
+    };
+
+    var executor = function(callback) {
+        if(this.first) {
+            this.first = false;
+            this.callback = callback;
+            this.handler = handler.bind(this);
+        }
+
+        var fn = this.functions.shift();
+        if(fn === undefined) {
+            this.callback(null, this.data);
+            return;
+        };
+
+        try {
+            fn.call(this.handler, this.data);
+
+            // the called function may not have setup anything
+            if(this.globalpending == 0)
+            {
+                if(this.functions.length == 0)
+                {
+                    this.executor();
+                } else {
+                    this.callback(null, this.data);
+                }
+            }
+        } catch (err) {
+            this.callback(err, this.data);
+        };
+    };
+
+    var context = {
+        functions: Array.prototype.slice.call(arguments),
+        first: true,
+        globalpending: 0,
+        pending: {},
+        data: {}
+    };
+
+    return context.executor = executor.bind(context);
+});
