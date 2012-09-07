@@ -56,6 +56,35 @@ The sample should be easy enough to get the main idea behind scoop. Whenever you
 
 The context may be changed and read everytime you want and is never touched by scoop except for result population. You may also save the result of the first scoop call to specify a finailzer later.
 
+### Beware of broken callbacks
+
+From 'examples/sametick.js':
+
+    function correctCallback(callback) {
+        process.nextTick(function() {
+            callback(null, 'foo');
+        });
+    }
+
+    function brokenCallback(callback) {
+        callback(null, 'bar');
+    }
+
+    scoop(
+        function first(ctx) {
+            correctCallback(this('correct'));
+        },
+        function second(ctx) {
+            brokenCallback(this('broken'));
+        })(
+        function finalize(err, ctx) {
+            if (err) throw err;
+            console.log(ctx);
+        }
+    );
+
+The passed functions have to return before every callback may be called. Scoop enforces that callbacks are not called in the same tick by throwing an Error if this happens.
+
 ### Multiple results for one key
 
 From 'examples/multiple.js':
